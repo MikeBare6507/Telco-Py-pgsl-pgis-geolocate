@@ -1,0 +1,76 @@
+from sqlalchemy import create_engine, text
+import pandas as pd
+import random
+
+# Database connection details
+db_config = {
+    'host': 'localhost',       
+    'database': 'postgis_34_sample',
+    'user': 'postgres',
+    'password': '0624'
+}
+
+# Create SQLAlchemy engine
+def create_engine_db():
+    db_url = f"postgresql://{db_config['user']}:{db_config['password']}@{db_config['host']}/{db_config['database']}"
+    engine = create_engine(db_url)
+    return engine
+
+# Fetch cid, mkt_id, fip_type from cid_fip table
+def fetch_cid_fip_data(engine):
+    query = "SELECT cid, mkt_id, fip_type FROM cid_fip;"
+    return pd.read_sql(query, engine)
+
+# Fetch fip options from cid_fip_assign table
+def fetch_fip_assign_data(engine):
+    query = "SELECT mkt_id, fip_type, fip FROM cid_fip_assign;"
+    return pd.read_sql(query, engine)
+
+# Assign random fip to each cid in cid_fip table
+def assign_random_fips(engine, cid_fip_df, fip_assign_df):
+    # Create a new DataFrame for results
+    results = []
+
+    for index, row in cid_fip_df.iterrows():
+        cid = row['cid']
+        mkt_id = row['mkt_id']
+        fip_type = row['fip_type']
+
+        # Filter fip_assign_df based on mkt_id and fip_type
+        eligible_fips = fip_assign_df[
+            (fip_assign_df['mkt_id'] == mkt_id) & 
+            (fip_assign_df['fip_type'] == fip_type)
+        ]
+
+        if not eligible_fips.empty:
+            # Randomly select a fip
+            selected_fip = random.choice(eligible_fips['fip'].tolist())
+            results.append((cid, selected_fip))
+
+    # Create a DataFrame for the results
+    result_df = pd.DataFrame(results, columns=['cid', 'fip'])
+
+    # Update the cid_fip table with the new fip values
+    with engine.begin() as connection:
+        for index, row in result_df.iterrows():
+            update_query = """
+            UPDATE cid_fip
+            SET fip = :fip
+            WHERE cid = :cid;
+            """
+            connection.execute(text(update_query), {'fip': row['fip'], 'cid': row['cid']})
+
+def main():
+    # Create SQLAlchemy engine
+    engine = create_engine_db()
+
+    # Fetch the data from the tables
+    cid_fip_df = fetch_cid_fip_data(engine)
+    fip_assign_df = fetch_fip_assign_data(engine)
+
+    # Assign random fips
+    assign_random_fips(engine, cid_fip_df, fip_assign_df)
+
+if __name__ == '__main__':
+    main()
+
