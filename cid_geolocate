@@ -1,91 +1,116 @@
 import psycopg2
 from psycopg2 import sql
-from shapely.geometry import Point
+from shapely.geometry import Point, Polygon
 from shapely.wkt import loads as wkt_loads
-from shapely.ops import transform
 import random
 import math
-from shapely.geometry import shape
 
 # Define the distance ranges for each fip_type
 DISTANCE_RANGES = {
-    'C1': 25, 'C2': 25, 'C3': 25,
-    'C4': 35, 'C5': 35,
-    'rr1': 10, 'rr2': 10,
-    'r01': 30, 'r02': 30
+    'C1': 'weighted',  # Use 'weighted' to indicate a custom weighted selection
+    'C2': 'weighted',
+    'C3': 'weighted',
+    'C4': 'weighted',
+    'C5': 'weighted',
+    'rr1': 10,  # Fixed distance for rr1
+    'rr2': 10,
+    'r01': 30,  # Fixed distance for r01 and r02
+    'r02': 30
 }
 
+# Define the custom weighted random distance selection function
+def get_weighted_random_distance(fip_type):
+    if fip_type in ['C1', 'C2', 'C3']:
+        probabilities = [0.4, 0.3, 0.3]
+        distance_choices = [
+            10, 
+            random.uniform(7, 30), 
+            random.uniform(25, 45)
+        ]
+    elif fip_type in ['C4', 'C5']:
+        probabilities = [0.3, 0.3, 0.4]
+        distance_choices = [
+            10, 
+            random.uniform(8, 35), 
+            random.uniform(30, 45)
+        ]
+    else:
+        return DISTANCE_RANGES.get(fip_type, 10)
+
+    return random.choices(distance_choices, weights=probabilities, k=1)[0]
+
+# Function to generate a random point within a distance from a centroid
 def generate_random_point(fip_geom_wkt, max_distance):
-    # Convert WKT to a Shapely geometry object
     fip_geom = wkt_loads(fip_geom_wkt)
 
-    # Get the centroid of the fip_geom (handles Polygon or MultiPolygon)
     if fip_geom.geom_type in ['Polygon', 'MultiPolygon']:
         fip_centroid = fip_geom.centroid
     else:
         raise ValueError(f"Expected Polygon or MultiPolygon, but got {fip_geom.geom_type}")
 
-    # Convert max_distance to degrees (approximation)
     max_distance_deg = max_distance / 111  # 1 degree ~ 111 km
 
-    # Generate random angle and distance for the point
     angle = random.uniform(0, 2 * math.pi)
     distance = random.uniform(0, max_distance_deg)
 
-    # Calculate new coordinates for the random point
     new_lat = fip_centroid.y + (distance * math.sin(angle))
     new_lon = fip_centroid.x + (distance * math.cos(angle))
 
     return Point(new_lon, new_lat)
 
-# Establish PostgreSQL connection
-conn = psycopg2.connect(
-    dbname="postgis_34_sample",
-    user="postgres",
-    password="0624",
-    host="localhost",
-    port="5432"
-)
+# Initialize conn and cursor variables
+conn = None
+cursor = None
 
-cursor = conn.cursor()
+try:
+    # Establish the connection to the PostgreSQL database
+    conn = psycopg2.connect("dbname=postgis_34_sample user=postgres password=0624 host=localhost")
+    cursor = conn.cursor()
 
-# Fetch all the relevant data from the cid_geom_gen table
-cursor.execute("""
-    SELECT cid, fip_type, fip_geom, mkt_geom 
-    FROM cid_geom_gen WHERE cid LIKE 'ETX%';
-""")
-records = cursor.fetchall()
+    # Fetch records from the database
+    cursor.execute("""
+        SELECT cid, fip_type, fip_geom, mkt_geom 
+        FROM cid_geom_gen;  
+    """)
+    
+    # Fetch all records from the query
+    records = cursor.fetchall()
 
-# Iterate through each cid
-for record in records:
-    cid, fip_type, fip_geom_wkt, mkt_geom_wkt = record
+    # Example usage within your existing loop for generating points:
+    for record in records:
+        cid, fip_type, fip_geom_wkt, mkt_geom_wkt = record
 
-    # Get the maximum distance based on the fip_type
-    max_distance = DISTANCE_RANGES.get(fip_type, 10)  # Default distance if fip_type not found
+        if DISTANCE_RANGES[fip_type] == 'weighted':
+            max_distance = get_weighted_random_distance(fip_type)
+        else:
+            max_distance = DISTANCE_RANGES.get(fip_type, 10)
 
-    # Generate a random point around the fip_geom centroid
-    random_point = generate_random_point(fip_geom_wkt, max_distance)
-
-    # Convert market geometry to Shapely shape
-    market_polygon = wkt_loads(mkt_geom_wkt)
-
-    # Ensure the random point is within the market polygon
-    while not market_polygon.contains(random_point):
         random_point = generate_random_point(fip_geom_wkt, max_distance)
 
-    # Update the database with the new point geometry in WKT format
-    cursor.execute("""
-        UPDATE cid_geom_gen
-        SET cid_geom = %s
-        WHERE cid = %s;
-    """, (random_point.wkt, cid))
+        market_polygon = wkt_loads(mkt_geom_wkt)
 
-# Commit the changes
-conn.commit()
+        while not market_polygon.contains(random_point):
+            random_point = generate_random_point(fip_geom_wkt, max_distance)
 
-# Close the connection
-cursor.close()
-conn.close()
+        cursor.execute("""
+            UPDATE cid_geom_gen
+            SET cid_geom = %s
+            WHERE cid = %s;
+        """, (random_point.wkt, cid))
 
-# Notify the user that the script has finished
-print("Script has finished running successfully!")
+        print(f"{cid::0 - 4} processed successfully")
+
+    conn.commit()
+
+except psycopg2.DatabaseError as db_err:
+    print(f"Database error occurred: {db_err}")
+    if conn:
+        conn.rollback()
+except Exception as err:
+    print(f"An error occurred: {err}")
+finally:
+    # Safely close the cursor and connection
+    if cursor:
+        cursor.close()
+    if conn:
+        conn.close()
