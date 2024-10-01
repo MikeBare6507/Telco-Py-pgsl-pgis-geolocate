@@ -1,0 +1,147 @@
+import psycopg2
+from shapely.geometry import Point, Polygon
+from shapely.wkt import loads as wkt_loads
+import math
+import random
+import csv
+import logging
+import os
+
+# Define the folders
+log_folder = "C:\\Users\\erabe\\OneDrive\\Portfolio\\TelcoWithPython\\Log files"
+output_folder = "C:\\Users\\erabe\\OneDrive\\Portfolio\\TelcoWithPython\\Telco Generated Data\\cid_geometry"
+
+# Ensure the folders exist
+os.makedirs(log_folder, exist_ok=True)
+os.makedirs(output_folder, exist_ok=True)
+
+# Set up logging
+log_file = os.path.join(log_folder, "geom_script.log")
+logging.basicConfig(filename=log_file, level=logging.DEBUG, 
+                    format='%(asctime)s %(levelname)s:%(message)s')
+
+# Function to generate random points
+def generate_random_point(geom_wkt, max_distance):
+    centroid = wkt_loads(geom_wkt).centroid
+    random_dist = random.uniform(0, max_distance)
+    random_angle = random.uniform(0, 360)
+    new_point = Point(
+        centroid.x + random_dist * math.cos(math.radians(random_angle)),
+        centroid.y + random_dist * math.sin(math.radians(random_angle))
+    )
+    return new_point
+
+
+# Define the custom weighted random distance selection function
+def get_weighted_random_distance(fip_type):
+    if fip_type in ['C1', 'C2', 'C3']:
+        probabilities = [0.4, 0.3, 0.3]
+        distance_choices = [
+            10, 
+            random.uniform(7, 30), 
+            random.uniform(25, 45)
+        ]
+    elif fip_type in ['C4', 'C5']:
+        probabilities = [0.3, 0.3, 0.4]
+        distance_choices = [
+            10, 
+            random.uniform(8, 35), 
+            random.uniform(30, 45)
+        ]
+    else:
+        return DISTANCE_RANGES.get(fip_type, 10)
+    return random.choices(distance_choices, weights=probabilities, k=1)[0]
+
+# Database connection
+conn = psycopg2.connect(
+    dbname="postgis_34_sample", user="postgres", password="0624", host="localhost", port="5432"
+)
+cursor = conn.cursor()
+
+# Define the distance ranges for each fip_type
+DISTANCE_RANGES = {
+    'C1': 'weighted', 'C2': 'weighted', 'C3': 'weighted',
+    'C4': 'weighted', 'C5': 'weighted',
+    'rr1': 10, 'rr2': 10,
+    'r01': 30, 'r02': 30
+}
+
+
+# List of markets
+markets = [
+    "WTXA", "SANB", "SANA", "DFWC", "AUSA", "HOUC", "AUSB", "HOUB", "HOUA", "DFWA", 
+    "DFWB", "ETXA", "NOLA", "NOLB", "LAUA", "ARKA", "STLA", "STLB", "OKCA", "TULA", 
+    "OKCB", "KSCB", "KSCA", "OGAA", "OMAA", "IOWA", "SDAA", "NDAA", "MNAA", "MNAB", 
+    "CHIB", "CHIA", "WIMB", "CHIC", "WIMA"
+]
+
+# Output CSV file path
+output_file = os.path.join(output_folder, 'cid_geom_data.csv')
+
+# Open CSV file for writing geometry data in WKT format
+with open(output_file, mode='w', newline='') as csv_file:
+    writer = csv.writer(csv_file)
+    writer.writerow(['cid', 'fip_type', 'cid_geom_wkt'])  # Header row
+
+    # Loop through each market
+    for market in markets:
+        try:
+            logging.info(f"Processing market: {market}")
+            print(f"Processing market: {market}")
+            
+            # Fetch relevant data for the current market
+            cursor.execute(f"""
+                SELECT cid, fip_type, fip_geom, mkt_geom 
+                FROM cid_geom_gen 
+                WHERE mkt_id LIKE '{market}%';
+            """)
+            records = cursor.fetchall()
+            
+            for record in records:
+                cid, fip_type, fip_geom_wkt, mkt_geom_wkt = record
+                
+                # Determine max distance based on fip_type
+                if DISTANCE_RANGES[fip_type] == 'weighted':
+                    max_distance = get_weighted_random_distance(fip_type)
+                else:
+                    max_distance = DISTANCE_RANGES.get(fip_type, 10)
+                
+                # Generate a random point within the polygon
+                random_point = generate_random_point(fip_geom_wkt, max_distance)
+                market_polygon = wkt_loads(mkt_geom_wkt)
+                
+                # Limit the number of attempts to avoid infinite loop
+                max_attempts = 100
+                attempt = 0
+                while not market_polygon.contains(random_point) and attempt < max_attempts:
+                    random_point = generate_random_point(fip_geom_wkt, max_distance)
+                    attempt += 1
+
+                if attempt == max_attempts:
+                    logging.warning(f"Could not find a valid point for CID {cid} after {max_attempts} attempts.")
+                    continue  # Skip this CID if no valid point is found
+
+                # Write CID and WKT geometry to CSV
+                writer.writerow([cid, fip_type, random_point.wkt])
+                logging.info(f"{cid} processed successfully")
+                print(f"{cid} processed successfully")
+            
+            # Commit changes after processing each market
+            conn.commit()
+            logging.info(f"Market {market} processed successfully.")
+            print(f"Market {market} processed successfully.")
+        
+        except psycopg2.DatabaseError as db_err:
+            logging.error(f"Database error occurred in market {market}: {db_err}")
+            if conn:
+                conn.rollback()  # Rollback to the last commit if there is an error
+        except Exception as err:
+            logging.error(f"An error occurred in market {market}: {err}")
+            print(f"An error occurred in market {market}: {err}")
+
+# Closing the database connection
+cursor.close()
+conn.close()
+
+logging.info("Processing complete.")
+print("Processing complete.")
