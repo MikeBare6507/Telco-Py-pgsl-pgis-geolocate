@@ -1,0 +1,49 @@
+import pandas as pd
+import random
+from datetime import datetime
+
+# Input file paths
+names_list_path = r"C:\Users\erabe\OneDrive\Portfolio\TelcoWithPython\Usable table files\NamesList.csv"
+market_tech_needs_path = r"C:\\Users\\erabe\\OneDrive\\Portfolio\\TelcoWithPython\\Telco Generated Data\\DataGenTech_100224\\market_tech_needs.csv"
+
+# Output file path
+output_path = "C:\\Users\\erabe\\OneDrive\\Portfolio\\TelcoWithPython\\Telco Generated Data\\DataGenTech_100224"
+
+output_file_name = "techs_" + datetime.now().strftime("%Y%m%d_%H%M%S") + ".csv"
+
+# Load input files
+names_df = pd.read_csv(names_list_path)
+market_tech_needs_df = pd.read_csv(market_tech_needs_path)
+
+# Function to generate a unique employee ID
+def generate_eid(market):
+    # Convert market to a string and strip any whitespace
+    market_str = str(market).strip()
+    
+    # If market is empty or NaN, handle it (e.g., return a default or raise an error)
+    if not market_str or market_str == 'nan':
+        market_str = "NA"  # You can choose to handle this differently
+
+    return f"{market_str[:2]}{random.randint(111, 999)}{market_str[-2:]}"
+
+# Prepare the data for the techs table
+techs_data = []
+
+for _, row in market_tech_needs_df.iterrows():
+    market = row['market']
+    tech_count = row['tech_count']
+    
+    for _ in range(tech_count):
+        eid = generate_eid(market)
+        last_name = random.choice(names_df['names'])
+        first_name = random.choice(names_df['names'])
+        tenure = random.randint(1, 15)
+        techs_data.append([eid, last_name, first_name, market, tenure])
+
+# Convert the data to a DataFrame
+techs_df = pd.DataFrame(techs_data, columns=['eid', 'last_name', 'first_name', 'market', 'tenure'])
+
+# Save the DataFrame to a CSV file
+techs_df.to_csv(f"{output_path}/{output_file_name}", index=False)
+
+print(f"Techs table saved to {output_path}/{output_file_name}")
