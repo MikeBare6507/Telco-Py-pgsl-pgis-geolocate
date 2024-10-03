@@ -99,7 +99,7 @@ for market in markets:
             market_polygon = wkt_loads(mkt_geom_wkt)
             
             # Limit the number of attempts to avoid infinite loop
-            max_attempts = 100
+            max_attempts = 300
             attempt = 0
             while not market_polygon.contains(random_point) and attempt < max_attempts:
                 random_point = generate_random_point(fip_geom_wkt, max_distance)
