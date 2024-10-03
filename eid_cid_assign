@@ -1,0 +1,118 @@
+import pandas as pd
+import geopandas as gpd
+from shapely.wkt import loads as wkt_loads
+from sqlalchemy import create_engine, text
+from sklearn.cluster import KMeans
+import os
+import random
+from shapely.ops import nearest_points
+import warnings
+
+# Suppress specific warnings from scikit-learn
+warnings.filterwarnings("ignore", category=UserWarning, module='sklearn.cluster._kmeans')
+
+# Set the number of threads for KMeans to avoid memory leak
+os.environ["OMP_NUM_THREADS"] = "2"  # Set to 1 or 2 to reduce the chance of memory leaks
+
+
+def fetch_data():
+    # Create SQLAlchemy engine for connection
+    engine = create_engine('postgresql://postgres:0624@localhost/postgis_34_sample')
+
+    # Define SQL queries
+    cid_query = "SELECT cid, mkt_id, fip, cid_geom FROM cid_kmeans_gen;"
+    eid_query = "SELECT eid, mkt_id FROM eid_employees;"
+
+    # Fetch data from the database
+    cid_df = pd.read_sql(cid_query, engine)
+    eid_df = pd.read_sql(eid_query, engine)
+
+    # Convert cid_geom to geometry
+    cid_df['geometry'] = cid_df['cid_geom'].apply(wkt_loads)
+    cid_gdf = gpd.GeoDataFrame(cid_df, geometry='geometry')
+
+    return cid_gdf, eid_df  # Return GeoDataFrame and eid DataFrame
+
+def apply_kmeans_per_market(cid_gdf, eid_df):
+    cid_gdf['cluster'] = None  # Initialize column for cluster assignment
+
+    # Iterate through each market
+    for market_id in cid_gdf['mkt_id'].unique():
+        # Filter CIDs and EIDs for the market
+        market_cid_gdf = cid_gdf[cid_gdf['mkt_id'] == market_id].copy()  # Use .copy() to avoid SettingWithCopyWarning
+        market_eid_df = eid_df[eid_df['mkt_id'] == market_id]
+        
+        num_cids = len(market_cid_gdf)
+        num_eids = len(market_eid_df)
+        
+        # Determine number of clusters (1 cluster per EID)
+        num_clusters = max(1, num_cids // num_eids)
+        
+        # Get coordinates for K-Means clustering
+        coordinates = list(market_cid_gdf['geometry'].apply(lambda geom: (geom.x, geom.y)))
+
+        # Apply K-Means clustering
+        kmeans = KMeans(n_clusters=num_clusters)
+        market_cid_gdf['cluster'] = kmeans.fit_predict(coordinates)
+        
+        # Assign back to the original GeoDataFrame using .loc
+        cid_gdf.loc[market_cid_gdf.index, 'cluster'] = market_cid_gdf['cluster']
+    
+    return cid_gdf
+
+def assign_eids_to_clusters(cid_gdf, eid_df):
+    assignments = []
+
+    for market_id in cid_gdf['mkt_id'].unique():
+        market_cid_gdf = cid_gdf[cid_gdf['mkt_id'] == market_id].copy()  # Use .copy() to avoid SettingWithCopyWarning
+        market_eid_df = eid_df[eid_df['mkt_id'] == market_id]
+        
+        num_clusters = market_cid_gdf['cluster'].nunique()
+        num_eids = len(market_eid_df)
+
+        # Randomly assign EIDs to clusters
+        eids = list(market_eid_df['eid'])
+        random.shuffle(eids)
+        
+        cluster_groups = market_cid_gdf.groupby('cluster')
+        
+        for i, (cluster, cids) in enumerate(cluster_groups):
+            eid = eids[i % num_eids]  # Rotate through EIDs
+            
+            # Introduce some overlap
+            for idx, row in cids.iterrows():
+                # If overlap is required, randomly assign neighboring CIDs to the same EID
+                nearest_geom = nearest_points(row['geometry'], cids['geometry'])[1]
+                overlap_condition = row['geometry'].distance(nearest_geom) <= 10000  # 10 km threshold
+
+                assignments.append({'cid': row['cid'], 'eid': eid})
+    
+    return pd.DataFrame(assignments)
+
+def insert_assignments(assignments_df):
+    # Prepare data for insertion
+    data = list(assignments_df.itertuples(index=False, name=None))
+    
+    insert_query = """
+    INSERT INTO cid_eid (cid, eid) VALUES (%s, %s)
+    ON CONFLICT (cid) DO UPDATE SET eid = EXCLUDED.eid;
+    """
+    
+    # Create a connection to PostgreSQL
+    engine = create_engine('postgresql://postgres:0624@localhost/postgis_34_sample')
+    with engine.connect() as conn:
+        conn.execute(text(insert_query), data)  # Use text() to convert string to executable SQL
+
+# Fetch data and prepare GeoDataFrame
+cid_df, eid_df = fetch_data()
+cid_df['geometry'] = cid_df['cid_geom'].apply(wkt_loads)
+cid_gdf = gpd.GeoDataFrame(cid_df, geometry='geometry')
+
+# Apply K-Means clustering
+cid_gdf = apply_kmeans_per_market(cid_gdf, eid_df)
+
+# Assign EIDs to clusters
+assignments_df = assign_eids_to_clusters(cid_gdf, eid_df)
+
+# Insert assignments into the database
+insert_assignments(assignments_df)
