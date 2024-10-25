@@ -1,0 +1,76 @@
+import random
+import psycopg2
+
+# Connect to your PostgreSQL database
+connection = psycopg2.connect(
+    host="localhost",
+    database="postgis_34_sample",
+    user="postgres",
+    password="0624"
+)
+cursor = connection.cursor()
+
+# Fetch all eids and markets from the database
+cursor.execute("SELECT eid, mkt_id, tenure FROM eid_simulation")
+records = cursor.fetchall()
+
+# Function to randomly adjust the tenure value
+def eid_selected_function(tenure):
+    adjustment = random.randint(-7, 7)
+    new_tenure = tenure + adjustment
+    # Ensure the tenure stays between 0 and 20
+    return max(0, min(new_tenure, 20))
+
+# --- Part 1: Select 5-15% of all eids and adjust tenure ---
+
+# Randomly select between 5 and 15% of all eids
+num_eids = len(records)
+percentage = random.uniform(0.05, 0.15)
+num_eids_to_update = round(num_eids * percentage)
+
+# Randomly select eids to update
+eids_to_update = random.sample(records, num_eids_to_update)
+
+# Update tenure for the selected eids
+for record in eids_to_update:
+    eid, mkt_id, tenure = record
+    new_tenure = eid_selected_function(tenure)
+    
+    # Update the database with the new tenure
+    cursor.execute("UPDATE eid_simulation SET tenure = %s WHERE eid = %s", (new_tenure, eid))
+
+# --- Part 2: Select random markets and adjust eids within those markets ---
+
+# Define the market array
+markets = ["AUSB", "DFWC", "ETXA", "HOUC", "WIMA", "OKCB", "CHIC", "AUSA", "OMAA", "CHIB", "OGAA", "MNAA", 
+           "CHIA", "OKCA", "STLA", "WTXA", "SDAA", "DFWA", "NDAA", "ARKA", "WIMB", "HOUA", "HOUB", "NOLB", 
+           "NOLA", "DFWB", "LAUA", "TULA", "IOWA", "SANB", "KSCB", "SANA", "MNAB", "STLB", "KSCA"]
+
+# Randomly select between 0 and 10 markets
+num_markets_to_select = random.randint(0, 10)
+markets_selected = random.sample(markets, num_markets_to_select)
+
+for market in markets_selected:
+    # Fetch all eids for the current market
+    cursor.execute("SELECT eid, tenure FROM eid_simulation WHERE mkt_id = %s", (market,))
+    market_eids = cursor.fetchall()
+
+    # Randomly select between 1 and 10 eids from the market
+    num_market_eids_to_update = random.randint(1, min(10, len(market_eids)))
+    market_eids_to_update = random.sample(market_eids, num_market_eids_to_update)
+
+    # Update tenure for the selected eids in the market
+    for market_eid_record in market_eids_to_update:
+        eid, tenure = market_eid_record
+        new_tenure = eid_selected_function(tenure)
+        
+        # Update the database with the new tenure
+        cursor.execute("UPDATE eid_simulation SET tenure = %s WHERE eid = %s", (new_tenure, eid))
+
+# Commit the changes and close the connection
+connection.commit()
+cursor.close()
+connection.close()
+
+print("Updates complete.")
+
