@@ -170,5 +170,3 @@ cid_inventory_df['asset_id'] = cid_inventory_df.apply(lambda _: generate_asset_i
 
 # STEP 7: Save the data into the new file
 cid_inventory_df.to_csv(output_path, index=False)
-
-
