@@ -19,7 +19,7 @@ os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
 # B. Input file paths, for files from which data is fetched
 cid_list_path = r"C:\Users\erabe\OneDrive\Portfolio\TelcoWithPython\Telco Generated Data\TelcoDatagen_fixes_20241019\data-1730233542858.csv"
-parts_list_path = r"C:\Users\Mike\OneDrive\Portfolio\TelcoWithPython\Usable table files\Parts.csv"
+parts_list_path = r"C:\Users\erabe\OneDrive\Portfolio\TelcoWithPython\Usable table files\Parts.csv"
 
 # C. Load input files into DataFrames
 cid_list_df = pd.read_csv(cid_list_path)
