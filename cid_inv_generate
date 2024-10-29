@@ -12,13 +12,13 @@ from datetime import datetime
 current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 
 # Output path for CSV file with date and time
-output_path = r"C:\Users\Mike\OneDrive\Portfolio\TelcoWithPython\Telco Generated Data\TelcoDataGen_20240831_165007\cid_inventory_" + current_time + ".csv"
+output_path = r"C:\Users\erabe\OneDrive\Portfolio\TelcoWithPython\Telco Generated Data\TelcoDatagen_fixes_20241019\cid_inventory_" + current_time + ".csv"
 
 # Ensure the directory exists
 os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
 # B. Input file paths, for files from which data is fetched
-cid_list_path = r"C:\Users\Mike\OneDrive\Portfolio\TelcoWithPython\Telco Generated Data\TelcoDataGen_20240920_222707\cid_gen_20240920_222707.csv"
+cid_list_path = r"C:\Users\erabe\OneDrive\Portfolio\TelcoWithPython\Telco Generated Data\TelcoDatagen_fixes_20241019\data-1730233542858.csv"
 parts_list_path = r"C:\Users\Mike\OneDrive\Portfolio\TelcoWithPython\Usable table files\Parts.csv"
 
 # C. Load input files into DataFrames
@@ -42,6 +42,7 @@ def LtBg():
             select_parts("GT", 8, 15) +
             select_parts("FBI", 1, 1) +
             select_parts("AC", 1, 3) +
+	        select_parts("AN", 1, 3) +
             select_parts("POW", 6, 10))
 
 def LtMd():
@@ -50,6 +51,7 @@ def LtMd():
             select_parts("GT", 5, 9) +
             select_parts("FBI", 1, 1) +
             select_parts("AC", 1, 3) +
+		    select_parts("AN", 1, 3) +
             select_parts("POW", 3, 8))
 
 def LtSm():
@@ -58,30 +60,34 @@ def LtSm():
             select_parts("GT", 3, 7) +
             select_parts("FBI", 1, 1) +
             select_parts("AC", 1, 3) +
+	        select_parts("AN", 1, 3) +
             select_parts("POW", 2, 4))
 
 def LgBg():
-    return (select_parts("RFLG", 15, 20) +
+    return (select_parts("RAFLT", 15, 20) +
             select_parts("SLG", 8, 15) +
             select_parts("GT", 8, 15) +
             select_parts("FBI", 1, 1) +
             select_parts("AC", 1, 3) +
+	        select_parts("AN", 1, 3) +
             select_parts("POW", 6, 10))
 
 def LgMd():
-    return (select_parts("RFLG", 9, 15) +
+    return (select_parts("RAFLT", 9, 15) +
             select_parts("SLG", 6, 10) +
             select_parts("GT", 5, 9) +
             select_parts("FBI", 1, 1) +
             select_parts("AC", 1, 3) +
+            select_parts("AN", 1, 3) +
             select_parts("POW", 3, 8))
 
 def LgSm():
-    return (select_parts("RFLG", 6, 10) +
+    return (select_parts("RAFLT", 6, 10) +
             select_parts("SLG", 4, 8) +
             select_parts("GT", 3, 7) +
             select_parts("FBI", 1, 1) +
             select_parts("AC", 1, 3) +
+		    select_parts("AN", 1, 3) +
             select_parts("POW", 2, 4))
 
 def PtBg():
@@ -90,22 +96,25 @@ def PtBg():
             select_parts("GT", 8, 15) +
             select_parts("FBI", 1, 1) +
             select_parts("AC", 1, 3) +
+		    select_parts("AN", 1, 3) +
             select_parts("POW", 6, 10))
 
 def PtMd():
-    return (select_parts("PT-RF", 9, 15) +
+    return (select_parts("PTRF", 9, 15) +
             select_parts("PT-S", 6, 10) +
             select_parts("GT", 5, 9) +
             select_parts("FBI", 1, 1) +
             select_parts("AC", 1, 3) +
+		    select_parts("AN", 1, 3) +
             select_parts("POW", 3, 8))
 
 def PtSm():
-    return (select_parts("PT-RF", 6, 10) +
+    return (select_parts("PTRF", 6, 10) +
             select_parts("PT-S", 4, 8) +
             select_parts("GT", 3, 7) +
             select_parts("FBI", 1, 1) +
             select_parts("AC", 1, 3) +
+	        select_parts("AN", 1, 3) +
             select_parts("POW", 2, 4))
 
 # STEP 4: Create function to choose algorithm on the basis of prime manufacturer and site_size
