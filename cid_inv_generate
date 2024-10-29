@@ -42,7 +42,7 @@ def LtBg():
             select_parts("GT", 8, 15) +
             select_parts("FBI", 1, 1) +
             select_parts("AC", 1, 3) +
-	        select_parts("AN", 1, 3) +
+	    select_parts("AN", 1, 3) +
             select_parts("POW", 6, 10))
 
 def LtMd():
@@ -51,7 +51,7 @@ def LtMd():
             select_parts("GT", 5, 9) +
             select_parts("FBI", 1, 1) +
             select_parts("AC", 1, 3) +
-		    select_parts("AN", 1, 3) +
+	    select_parts("AN", 1, 3) +
             select_parts("POW", 3, 8))
 
 def LtSm():
@@ -69,7 +69,7 @@ def LgBg():
             select_parts("GT", 8, 15) +
             select_parts("FBI", 1, 1) +
             select_parts("AC", 1, 3) +
-	        select_parts("AN", 1, 3) +
+	    select_parts("AN", 1, 3) +
             select_parts("POW", 6, 10))
 
 def LgMd():
@@ -87,7 +87,7 @@ def LgSm():
             select_parts("GT", 3, 7) +
             select_parts("FBI", 1, 1) +
             select_parts("AC", 1, 3) +
-		    select_parts("AN", 1, 3) +
+	    select_parts("AN", 1, 3) +
             select_parts("POW", 2, 4))
 
 def PtBg():
@@ -96,7 +96,7 @@ def PtBg():
             select_parts("GT", 8, 15) +
             select_parts("FBI", 1, 1) +
             select_parts("AC", 1, 3) +
-		    select_parts("AN", 1, 3) +
+	    select_parts("AN", 1, 3) +
             select_parts("POW", 6, 10))
 
 def PtMd():
@@ -105,7 +105,7 @@ def PtMd():
             select_parts("GT", 5, 9) +
             select_parts("FBI", 1, 1) +
             select_parts("AC", 1, 3) +
-		    select_parts("AN", 1, 3) +
+	    select_parts("AN", 1, 3) +
             select_parts("POW", 3, 8))
 
 def PtSm():
@@ -114,31 +114,31 @@ def PtSm():
             select_parts("GT", 3, 7) +
             select_parts("FBI", 1, 1) +
             select_parts("AC", 1, 3) +
-	        select_parts("AN", 1, 3) +
+	    select_parts("AN", 1, 3) +
             select_parts("POW", 2, 4))
 
-# STEP 4: Create function to choose algorithm on the basis of prime manufacturer and site_size
-def get_parts(prime_manu, site_size):
-    if prime_manu == "LT":
-        if site_size == "Bg":
+# STEP 4: Create function to choose algorithm on the basis of prime manufacturer and size
+def get_parts(p_manu, size):
+    if p_manu == "LT":
+        if size == "Bg":
             return LtBg()
-        elif site_size == "Md":
+        elif size == "Md":
             return LtMd()
-        elif site_size == "Sm":
+        elif size == "Sm":
             return LtSm()
-    elif prime_manu == "LG":
-        if site_size == "Bg":
+    elif p_manu == "LG":
+        if size == "Bg":
             return LgBg()
-        elif site_size == "Md":
+        elif size == "Md":
             return LgMd()
-        elif site_size == "Sm":
+        elif size == "Sm":
             return LgSm()
-    elif prime_manu == "PT":
-        if site_size == "Bg":
+    elif p_manu == "PT":
+        if size == "Bg":
             return PtBg()
-        elif site_size == "Md":
+        elif size == "Md":
             return PtMd()
-        elif site_size == "Sm":
+        elif size == "Sm":
             return PtSm()
     return []
 
@@ -148,9 +148,9 @@ cid_inventory_data = []
 # Iterate through each row in the cids dataframe
 for _, row in cid_list_df.iterrows():
     cid = row['cid']
-    prime_manu = row['prime_manu']
-    site_size = row['site_size']
-    parts_list = get_parts(prime_manu, site_size)
+    p_manu = row['p_manu']
+    size = row['size']
+    parts_list = get_parts(p_manu, size)
     for part_no in parts_list:
         cid_inventory_data.append([cid, part_no])
 
@@ -170,3 +170,5 @@ cid_inventory_df['asset_id'] = cid_inventory_df.apply(lambda _: generate_asset_i
 
 # STEP 7: Save the data into the new file
 cid_inventory_df.to_csv(output_path, index=False)
+
+
