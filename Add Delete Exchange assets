@@ -1,0 +1,166 @@
+import psycopg2
+import random
+import logging
+import string
+import numpy as np
+
+# Logging setup
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Database connection setup
+def connect_db():
+    logging.info("Connecting to the PostgreSQL database.")
+    return psycopg2.connect(
+        dbname="postgis_34_sample",
+        user="postgres",
+        password="0624",
+        host="localhost"
+    )
+
+# Generalized random selection range generator
+def create_random_selector(min_val, max_val):
+    def random_selector():
+        value = random.randint(min_val, max_val)
+        logging.info(f"Random selection between {min_val} and {max_val}: {value}")
+        return value
+    return random_selector
+
+rnd1_4 = create_random_selector(1, 4)
+rnd2_20 = create_random_selector(2, 20)
+
+# Select random market IDs
+def mkt_select(conn):
+    with conn.cursor() as cursor:
+        cursor.execute("SELECT DISTINCT mkt_id FROM test_ats_input;")
+        mkt_ids = [row[0] for row in cursor.fetchall()]
+    selected_mkt_ids = random.sample(mkt_ids, rnd1_4())
+    logging.info(f"Selected mkt_ids: {selected_mkt_ids}")
+    return selected_mkt_ids
+
+# Select random CIDs based on market ID
+def cid_select(conn, mkt_id):
+    with conn.cursor() as cursor:
+        cursor.execute("SELECT cid FROM test_ats_input WHERE mkt_id = %s;", (mkt_id,))
+        cids = [row[0] for row in cursor.fetchall()]
+    selected_cids = random.sample(cids, rnd2_20())
+    logging.info(f"Selected CIDs for mkt_id {mkt_id}: {selected_cids}")
+    return selected_cids
+
+# Generate unique asset ID
+def generate_asset_id():
+    first_two_chars = 'WW'
+    six_digit_number1 = np.random.randint(100000, 999999)
+    random_letter = random.choice(string.ascii_uppercase)
+    five_digit_number2 = np.random.randint(10000, 99999)
+    asset_id = f"{first_two_chars}{six_digit_number1}{random_letter}{five_digit_number2}"
+    logging.info(f"Generated asset ID: {asset_id}")
+    return asset_id
+
+# Select part type with weighted probabilities
+def select_part_type():
+    part_categories = ['RF', 'Periph', 'Telco', 'Infra']
+    weights = [0.91, 0.03, 0.03, 0.03]
+    selected_category = random.choices(part_categories, weights=weights, k=1)[0]
+    logging.info(f"Selected part category: {selected_category}")
+    return selected_category
+
+# Retrieve part number for selected category and manufacturer
+def select_part_no(conn, part_type, p_manu):
+    prefix_conditions = {
+        'RF': ["RFLT%", "RAFL%", "PTRF%"],
+        'Periph': ["AN%", "AC%", "PO%"],
+        'Telco': ["GT%"],
+        'Infra': ["SLT%", "PT-S%"]
+    }
+    prefixes = prefix_conditions.get(part_type, ["RF%"])
+
+    with conn.cursor() as cur:
+        cur.execute("SELECT part_no FROM parts WHERE part_no LIKE ANY(%s)", (prefixes,))
+        parts = [row[0] for row in cur.fetchall()]
+    
+    part_no = random.choice(parts) if parts else None
+    if part_no:
+        logging.info(f"Selected part number: {part_no}")
+    else:
+        logging.warning(f"No part number found for prefixes {prefixes}")
+    return part_no
+
+# Add new asset to inventory
+def asset_add(conn, cid, p_manu):
+    part_type = select_part_type()
+    part_no = select_part_no(conn, part_type, p_manu)
+    if part_no:
+        asset_id = generate_asset_id()
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO test_ats_output (cid, part_no, asset_id) 
+                VALUES (%s, %s, %s)
+            """, (cid, part_no, asset_id))
+        logging.info(f"Added new asset - CID: {cid}, Part No: {part_no}, Asset ID: {asset_id}")
+
+# Exchange asset
+def asset_exchange(conn, cid1, cid2):
+    part_type = select_part_type()
+    part_no = select_part_no(conn, part_type, None)
+    if part_no:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE test_ats_output 
+                SET cid = %s 
+                WHERE cid = %s AND part_no = %s
+            """, (cid2, cid1, part_no))
+        logging.info(f"Exchanged asset - Part No: {part_no}, moved from CID {cid1} to CID {cid2}")
+
+# Remove asset
+def asset_remove(conn, cid):
+    part_type = select_part_type()
+    part_no = select_part_no(conn, part_type, None)
+    if part_no:
+        with conn.cursor() as cur:
+            cur.execute("""
+                DELETE FROM test_ats_output 
+                WHERE cid = %s AND part_no = %s
+            """, (cid, part_no))
+        logging.info(f"Removed asset - CID: {cid}, Part No: {part_no}")
+
+# Process asset with a weighted choice among add, exchange, or remove
+def process_asset(conn, cid, cids_in_market):
+    action = random.choices(
+        ['add', 'exchange', 'remove'],
+        weights=[0.3, 0.2, 0.5],
+        k=1
+    )[0]
+    
+    if action == 'add':
+        p_manu = "Placeholder_Manufacturer"  # Replace with actual manufacturer if needed
+        asset_add(conn, cid, p_manu)
+    elif action == 'exchange':
+        cid2 = random.choice([other_cid for other_cid in cids_in_market if other_cid != cid])
+        asset_exchange(conn, cid, cid2)
+    elif action == 'remove':
+        asset_remove(conn, cid)
+
+# Main function
+def main():
+    try:
+        conn = connect_db()
+        selected_mkt_ids = mkt_select(conn)  # Select random market IDs
+
+        for mkt_id in selected_mkt_ids:
+            cids_in_market = cid_select(conn, mkt_id)  # Select CIDs for each market ID
+
+            for cid in cids_in_market:
+                process_asset(conn, cid, cids_in_market)
+        
+        conn.commit()
+        logging.info("All transactions committed successfully.")
+
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
+    finally:
+        conn.close()
+        logging.info("Database connection closed.")
+
+# Run the main function
+if __name__ == "__main__":
+    main()
