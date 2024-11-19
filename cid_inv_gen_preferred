@@ -1,0 +1,200 @@
+import pandas as pd
+import numpy as np
+import string
+import os
+from datetime import datetime
+
+# STEP 1: Set file paths for fetching data and creating new table data file
+
+# A. Make the output file path and new file name that includes date/time
+
+# Get the current date and time
+current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+# Output path for CSV file with date and time
+output_path = r"C:\Users\erabe\OneDrive\Portfolio\TelcoWithPython\Telco Generated Data\cid_inventory_" + current_time + ".csv"
+
+# Ensure the directory exists
+os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+# B. Input file paths, for files from which data is fetched
+cid_list_path = r"C:\Users\erabe\OneDrive\Portfolio\TelcoWithPython\Telco Generated Data\TelcoDatagen_fixes_20241019\data-1730233542858.csv"
+parts_list_path = r"C:\Users\erabe\OneDrive\Portfolio\TelcoWithPython\Usable table files\Parts.csv"
+
+# C. Load input files into DataFrames
+cid_list_df = pd.read_csv(cid_list_path)
+parts_df = pd.read_csv(parts_list_path)
+
+# STEP 2: Define parts selection function
+# Update select_parts function
+def select_parts(prefix, min_parts, max_parts):
+    # Filter parts by prefix
+    parts = parts_df[parts_df['part_no'].str.startswith(prefix)]['part_no']
+    
+    # Determine the number of parts to select
+    num_parts = np.random.randint(min_parts, max_parts + 1)
+    
+    # Handle cases where there are fewer parts available than required
+    if parts.empty:
+        return []
+    
+    # Randomly select parts, allowing repetition
+    selected_parts = list(np.random.choice(parts, size=num_parts, replace=True))
+    
+    return selected_parts
+
+# STEP 3: Define selection conditions algorithms
+def LtBg():
+    return (select_parts("RFLT", 38, 50) +
+            select_parts("SLG", 28, 45) +
+            select_parts("GT", 15, 28) +
+            select_parts("FBI", 1, 1) +
+            select_parts("AC", 5,10) +
+	        select_parts("AN", 3, 8) +
+            select_parts("POW", 10, 20))
+
+def LtMd():
+    return (select_parts("RFLT", 29, 45) +
+            select_parts("SLT", 16, 40) +
+            select_parts("GT", 15, 24) +
+            select_parts("FBI", 1, 1) +
+            select_parts("AC", 4, 8) +
+	        select_parts("AN", 3,7) +
+            select_parts("POW", 10, 18))
+
+def LtSm():
+    return (select_parts("RFLT", 25, 30) +
+            select_parts("SLT", 14, 38) +
+            select_parts("GT", 13, 17) +
+            select_parts("FBI", 1, 1) +
+            select_parts("AC", 3, 6) +
+	        select_parts("AN", 3, 5) +
+            select_parts("POW", 8, 14))
+
+def LgBg():
+    return (select_parts("RAFLT", 37, 50) +
+            select_parts("SLG", 28, 45) +
+            select_parts("GT", 18, 35) +
+            select_parts("FBI", 1, 1) +
+            select_parts("AC", 6, 13) +
+	        select_parts("AN", 5, 9) +
+            select_parts("POW", 10, 16))
+
+def LgMd():
+    return (select_parts("RAFLT", 29, 45) +
+            select_parts("SLG", 16, 26) +
+            select_parts("GT", 15, 19) +
+            select_parts("FBI", 1, 1) +
+            select_parts("AC", 1, 9) +
+            select_parts("AN", 4, 9) +
+            select_parts("POW", 5, 8))
+
+def LgSm():
+    return (select_parts("RAFLT", 26, 30) +
+            select_parts("SLG", 14, 28) +
+            select_parts("GT", 13, 17) +
+            select_parts("FBI", 1, 1) +
+            select_parts("AC", 3, 13) +
+	        select_parts("AN", 11, 13) +
+            select_parts("POW", 12, 14))
+
+def PtBg():
+    return (select_parts("PT-RF", 35, 60) +
+            select_parts("PT-S", 18, 35) +
+            select_parts("GT", 18, 25) +
+            select_parts("FBI", 1, 1) +
+            select_parts("AC", 11, 13) +
+	        select_parts("AN", 11, 13) +
+            select_parts("POW", 16, 20))
+
+def PtMd():
+    return (select_parts("PTRF", 29, 45) +
+            select_parts("PT-S", 16, 30) +
+            select_parts("GT", 15, 29) +
+            select_parts("FBI", 1, 1) +
+            select_parts("AC", 11, 13) +
+	        select_parts("AN", 11, 13) +
+            select_parts("POW", 13, 18))
+
+def PtSm():
+    return (select_parts("PTRF", 26, 30) +
+            select_parts("PT-S", 14, 28) +
+            select_parts("GT", 13, 17) +
+            select_parts("FBI", 1, 1) +
+            select_parts("AC", 11, 12) +
+	        select_parts("AN", 11, 12) +
+            select_parts("POW", 12, 14))
+
+# STEP 4: Create function to choose algorithm on the basis of prime manufacturer and size
+def get_parts(p_manu, size):
+    if p_manu == "LT":
+        if size == "Bg":
+            return LtBg()
+        elif size == "Md":
+            return LtMd()
+        elif size == "Sm":
+            return LtSm()
+    elif p_manu == "LG":
+        if size == "Bg":
+            return LgBg()
+        elif size == "Md":
+            return LgMd()
+        elif size == "Sm":
+            return LgSm()
+    elif p_manu == "PT":
+        if size == "Bg":
+            return PtBg()
+        elif size == "Md":
+            return PtMd()
+        elif size == "Sm":
+            return PtSm()
+    print(f"Invalid combination: p_manu={p_manu}, size={size}")
+    return []
+
+# STEP 5: Create the CID_Inventory DataFrame
+# Update main loop to log progress
+cid_inventory_data = []
+for _, row in cid_list_df.iterrows():
+    cid = row['cid']
+    p_manu = row['p_manu']
+    size = row['size']
+    parts_list = get_parts(p_manu, size)
+    if not parts_list:
+        print(f"No parts selected for CID: {cid}, Prime Manufacturer: {p_manu}, Size: {size}")
+    for part_no in parts_list:
+        cid_inventory_data.append([cid, part_no])
+
+# Iterate through each row in the cids dataframe
+for _, row in cid_list_df.iterrows():
+    cid = row['cid']
+    p_manu = row['p_manu']
+    size = row['size']
+    parts_list = get_parts(p_manu, size)
+    for part_no in parts_list:
+        cid_inventory_data.append([cid, part_no])
+
+# Convert data to a DataFrame
+cid_inventory_df = pd.DataFrame(cid_inventory_data, columns=['cid', 'part_no'])
+
+# STEP 6: Generate asset IDs and add as the last column
+def generate_unique_asset_ids(num_ids):
+    """Generate a specified number of unique asset IDs."""
+    asset_ids = set()
+    while len(asset_ids) < num_ids:
+        first_two_chars = 'WW'
+        six_digit_number1 = np.random.randint(100000, 999999)
+        random_letter = np.random.choice(list(string.ascii_uppercase))
+        five_digit_number2 = np.random.randint(10000, 99999)
+        asset_id = f"{first_two_chars}{six_digit_number1}{random_letter}{five_digit_number2}"
+        asset_ids.add(asset_id)
+    return list(asset_ids)
+
+# Generate a unique asset_id for each inventory record
+num_records = len(cid_inventory_df)
+unique_asset_ids = generate_unique_asset_ids(num_records)
+cid_inventory_df['asset_id'] = unique_asset_ids
+
+# STEP 7: Save the data into the new file
+cid_inventory_df.to_csv(output_path, index=False)
+# Debug the resulting DataFrame
+print(f"Total records generated: {len(cid_inventory_data)}")
