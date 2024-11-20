@@ -1,0 +1,15 @@
+SELECT 
+    e1.eid,
+    AVG(ST_Distance(
+        ST_Transform(e1.cid_geom, 2163), 
+        ST_Transform(e2.cid_geom, 2163)
+    ) * 0.000621371) AS avg_cid_distance_miles
+FROM 
+    cid_eid_geom e1
+JOIN 
+    cid_eid_geom e2 
+ON 
+    e1.eid = e2.eid    -- Pair `cid` points within the same `eid`
+    AND e1.cid <> e2.cid  -- Ensure not calculating distance from a point to itself
+GROUP BY 
+    e1.eid;
