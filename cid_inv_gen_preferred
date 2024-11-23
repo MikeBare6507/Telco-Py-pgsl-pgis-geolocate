@@ -45,61 +45,61 @@ def select_parts(prefix, min_parts, max_parts):
 
 # STEP 3: Define selection conditions algorithms
 def LtBg():
-    return (select_parts("RFLT", 38, 50) +
-            select_parts("SLG", 28, 45) +
-            select_parts("GT", 15, 28) +
+    return (select_parts("RFLT", 18, 30) +
+            select_parts("SLG", 18, 25) +
+            select_parts("GT", 5, 12) +
             select_parts("FBI", 1, 1) +
-            select_parts("AC", 5,10) +
+            select_parts("AC", 5, 10) +
 	        select_parts("AN", 3, 8) +
-            select_parts("POW", 10, 20))
+            select_parts("POW", 8, 14))
 
 def LtMd():
-    return (select_parts("RFLT", 29, 45) +
-            select_parts("SLT", 16, 40) +
-            select_parts("GT", 15, 24) +
+    return (select_parts("RFLT", 19, 30) +
+            select_parts("SLT", 16, 25) +
+            select_parts("GT", 5, 14) +
             select_parts("FBI", 1, 1) +
             select_parts("AC", 4, 8) +
 	        select_parts("AN", 3,7) +
-            select_parts("POW", 10, 18))
+            select_parts("POW", 6, 12))
 
 def LtSm():
-    return (select_parts("RFLT", 25, 30) +
-            select_parts("SLT", 14, 38) +
-            select_parts("GT", 13, 17) +
+    return (select_parts("RFLT", 12, 24) +
+            select_parts("SLT", 7, 14) +
+            select_parts("GT", 4, 7) +
             select_parts("FBI", 1, 1) +
             select_parts("AC", 3, 6) +
 	        select_parts("AN", 3, 5) +
-            select_parts("POW", 8, 14))
+            select_parts("POW", 4, 10))
 
 def LgBg():
-    return (select_parts("RAFLT", 37, 50) +
-            select_parts("SLG", 28, 45) +
-            select_parts("GT", 18, 35) +
+    return (select_parts("RAFLT", 17, 30) +
+            select_parts("SLG", 18, 25) +
+            select_parts("GT", 8, 15) +
             select_parts("FBI", 1, 1) +
             select_parts("AC", 6, 13) +
 	        select_parts("AN", 5, 9) +
-            select_parts("POW", 10, 16))
+            select_parts("POW", 9, 16))
 
 def LgMd():
-    return (select_parts("RAFLT", 29, 45) +
-            select_parts("SLG", 16, 26) +
-            select_parts("GT", 15, 19) +
+    return (select_parts("RAFLT", 15, 25) +
+            select_parts("SLG", 12, 26) +
+            select_parts("GT", 5, 12) +
             select_parts("FBI", 1, 1) +
             select_parts("AC", 1, 9) +
             select_parts("AN", 4, 9) +
             select_parts("POW", 5, 8))
 
 def LgSm():
-    return (select_parts("RAFLT", 26, 30) +
-            select_parts("SLG", 14, 28) +
-            select_parts("GT", 13, 17) +
+    return (select_parts("RAFLT", 16, 22) +
+            select_parts("SLG", 10, 18) +
+            select_parts("GT", 5, 12) +
             select_parts("FBI", 1, 1) +
             select_parts("AC", 3, 13) +
 	        select_parts("AN", 11, 13) +
-            select_parts("POW", 12, 14))
+            select_parts("POW", 2, 8))
 
 def PtBg():
-    return (select_parts("PT-RF", 35, 60) +
+    return (select_parts("PT-RF", 15, 30) +
             select_parts("PT-S", 18, 35) +
             select_parts("GT", 18, 25) +
             select_parts("FBI", 1, 1) +
@@ -108,22 +108,22 @@ def PtBg():
             select_parts("POW", 16, 20))
 
 def PtMd():
-    return (select_parts("PTRF", 29, 45) +
-            select_parts("PT-S", 16, 30) +
-            select_parts("GT", 15, 29) +
+    return (select_parts("PTRF", 14, 24) +
+            select_parts("PT-S", 12, 23) +
+            select_parts("GT", 8, 19) +
             select_parts("FBI", 1, 1) +
             select_parts("AC", 11, 13) +
 	        select_parts("AN", 11, 13) +
-            select_parts("POW", 13, 18))
+            select_parts("POW", 4, 10))
 
 def PtSm():
-    return (select_parts("PTRF", 26, 30) +
-            select_parts("PT-S", 14, 28) +
-            select_parts("GT", 13, 17) +
+    return (select_parts("PTRF", 12, 20) +
+            select_parts("PT-S", 10, 18) +
+            select_parts("GT", 6, 15) +
             select_parts("FBI", 1, 1) +
-            select_parts("AC", 11, 12) +
-	        select_parts("AN", 11, 12) +
-            select_parts("POW", 12, 14))
+            select_parts("AC", 6, 12) +
+	        select_parts("AN", 6, 12) +
+            select_parts("POW", 3, 8))
 
 # STEP 4: Create function to choose algorithm on the basis of prime manufacturer and size
 def get_parts(p_manu, size):
