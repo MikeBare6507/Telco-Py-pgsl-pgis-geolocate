@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np  # Don't forget to import numpy
 
 # Create a SQLAlchemy engine
-engine = create_engine('postgresql://postgres:0624@localhost/postgis_34_sample')
+engine = create_engine('postgresql://postgres:[PASSWORD]@localhost/postgis_34_sample')   #replace [PASSWORD] with actual password
 
 # Step 1: Retrieve cid and mkt_id from cid_fip table
 cid_fip_query = "SELECT cid, mkt_id FROM cid_fip;"
