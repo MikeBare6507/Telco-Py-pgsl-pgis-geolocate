@@ -17,7 +17,7 @@ os.environ["OMP_NUM_THREADS"] = "2"  # Set to 1 or 2 to reduce the chance of mem
 
 def fetch_data():
     # Create SQLAlchemy engine for connection
-    engine = create_engine('postgresql://postgres:0624@localhost/postgis_34_sample')
+    engine = create_engine('postgresql://postgres:[PASSWORD]@localhost/postgis_34_sample') #Replace [PASSWORD] with actual password
 
     # Define SQL queries
     cid_query = "SELECT cid, mkt_id, fip, cid_geom FROM cid_kmeans_gen;"
