@@ -50,7 +50,7 @@ def get_weighted_random_distance(fip_type):
 
 # Database connection
 conn = psycopg2.connect(
-    dbname="postgis_34_sample", user="postgres", password="0624", host="localhost", port="5432"
+    dbname="postgis_34_sample", user="postgres", password="", host="localhost", port="5432"
 )
 cursor = conn.cursor()
 
