@@ -14,7 +14,7 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module='sklearn.cluster._kmeans')
 
 # Create SQLAlchemy engine for connection
-engine = create_engine('postgresql://postgres:0624@localhost:5432/Telco2')
+engine = create_engine('postgresql://postgres:[PASSWORD]@localhost:5432/Telco2') #Replace [PASSWORD] with actual PW
 
 # Set the number of threads for KMeans to avoid memory leak
 os.environ["OMP_NUM_THREADS"] = "2"  # Set to 1 or 2 to reduce the chance of memory leaks
