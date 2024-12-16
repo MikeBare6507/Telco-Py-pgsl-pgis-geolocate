@@ -6,7 +6,7 @@ connection = psycopg2.connect(
     host="localhost",
     database="postgis_34_sample",
     user="postgres",
-    password="0624"
+    password=""
 )
 cursor = connection.cursor()
 
