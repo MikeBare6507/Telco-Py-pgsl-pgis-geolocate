@@ -13,7 +13,7 @@ def connect_db():
     return psycopg2.connect(
         dbname="postgis_34_sample",
         user="postgres",
-        password="0624",
+        password=" ",   #fill in as needed
         host="localhost"
     )
 
