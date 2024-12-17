@@ -1,0 +1,13 @@
+WITH cid_distances AS (
+         SELECT a.cid AS cid1,
+            b.cid AS cid2,
+            st_distancespheroid(a.cid_geom, b.cid_geom, 'SPHEROID("WGS 84",6378137,298.257223563)'::spheroid) / 1609.34::double precision AS distance_miles
+           FROM cid_geom a
+             CROSS JOIN cid_geom b
+          WHERE a.cid::text < b.cid::text AND "substring"(a.cid::text, 1, 4) = "substring"(b.cid::text, 1, 4)
+        )
+ SELECT "substring"(cid1::text, 1, 4) AS mkt_id,
+    avg(distance_miles) AS avg_distance_miles
+   FROM cid_distances
+  GROUP BY ("substring"(cid1::text, 1, 4))
+  ORDER BY ("substring"(cid1::text, 1, 4));
